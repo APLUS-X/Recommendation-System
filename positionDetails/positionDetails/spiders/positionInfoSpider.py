@@ -16,13 +16,18 @@ class LagoupositonSpider(scrapy.Spider):
     keywords = [json.loads(line) for line in open(basedir + '/positionData/KeyWords.json')]
     myurl = "http://www.lagou.com/jobs/positionAjax.json?px=new"
 
-    kds = keywords[0][u'技术'][0]
+    # 爬取所有的技术类
+    # kds = keywords[0][u'技术'][0]
+    # kd = kds[0]
+    # def start_requests(self):
+    #     return [scrapy.http.FormRequest(self.myurl,
+    #                                 formdata={'pn':str(self.curpage),'kd':self.kd},callback=self.parse)]
 
-    kd = kds[0]
-
+    # 爬取Python
+    kd = 'python'
     def start_requests(self):
         return [scrapy.http.FormRequest(self.myurl,
-                                        formdata={'pn':str(self.curpage),'kd':self.kd},callback=self.parse)]
+                                    formdata={'pn':str(self.curpage),'kd':self.kd},callback=self.parse)]
 
     def parse(self, response):
 
@@ -47,8 +52,6 @@ class LagoupositonSpider(scrapy.Spider):
             else:
                 item['salaryMax'] = int(sal[1][:sal[1].find('k')])
             item['salaryMin'] = int(sal[0][:sal[0].find('k')])
-            # item['positionAdvantage'] = each['positionAdvantage']
-            # item['companyLabelList'] = each['companyLabelList']
             item['formatCreatetime'] = each['formatCreateTime']
             item['workYear'] = each['workYear']
             item['companyId'] = each['companyId']
@@ -56,6 +59,8 @@ class LagoupositonSpider(scrapy.Spider):
             item['link'] = url
             item['keyword'] = self.kd
             yield item
+
+
         if self.curpage <= self.totalPageCount:
             self.curpage += 1
             yield scrapy.http.FormRequest(self.myurl,
