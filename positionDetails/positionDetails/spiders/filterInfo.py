@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 basedir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 class LagoupositonSpider(scrapy.Spider):
-    name = "lagou"
+    name = "lagouFilter"
 
     totalPageCount = 0
     curpage = 1
@@ -46,7 +46,6 @@ class LagoupositonSpider(scrapy.Spider):
             item['positionName'] = each['positionName']
             sal = each['salary']
             sal = sal.split('-')
-            print sal
             if len(sal) == 1:
                 item['salaryMax'] = int(sal[0][:sal[0].find('k')])
             else:
@@ -58,7 +57,9 @@ class LagoupositonSpider(scrapy.Spider):
             url = 'www.lagou.com/jobs/'+ str(item['companyId']) + '.html'
             item['link'] = url
             item['keyword'] = self.kd
-            yield item
+
+            if re.compile(r'^\d+:....').match(item['formatCreatetime']):
+                yield item
 
 
         if self.curpage <= self.totalPageCount:

@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 basedir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 class LagoupositonSpider(scrapy.Spider):
-    name = "lagou"
+    name = "lagou4"
 
     totalPageCount = 0
     curpage = 1
@@ -58,8 +58,9 @@ class LagoupositonSpider(scrapy.Spider):
             url = 'www.lagou.com/jobs/'+ str(item['companyId']) + '.html'
             item['link'] = url
             item['keyword'] = self.kd
-            yield item
+            itemurl = item['link']
 
+            yield scrapy.FormRequest(itemurl, callback=self.parse_des, meta={'item': item})
 
         if self.curpage <= self.totalPageCount:
             self.curpage += 1
@@ -75,3 +76,22 @@ class LagoupositonSpider(scrapy.Spider):
         #
         #
         #
+
+    def parse_des(self,response):
+        item = response.meta['item']
+        sel = Selector(response)
+        try:
+            item["description"] = self.get_text(sel, '//*[@id="job_detail"]/dd[2]')
+
+        except Exception, e:
+            print e
+
+        yield item
+
+
+    def get_text(self, sel, path):
+        xpath_text = sel.xpath(path).extract()[0]
+        text = BeautifulSoup(xpath_text).get_text()
+        text = re.sub(r'\n|\r|\t|&nbsp|\xa0|\\xa0|\u3000|\\u3000|\\u0020|\u0020|\\|"\"|\"', '', text)
+        return text
+
