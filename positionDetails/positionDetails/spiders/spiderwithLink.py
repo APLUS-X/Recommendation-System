@@ -44,6 +44,7 @@ class LagoupositonSpider(scrapy.Spider):
 
     # 根据每个职位对应的链接，返回相应的职位信息
     def parse_detail(self, response):
+        print "***************"
         print response.url
         item = PositiondetailsItem()
         sel = Selector(response)

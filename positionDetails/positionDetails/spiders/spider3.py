@@ -18,16 +18,13 @@ class LagoupositonSpider(scrapy.Spider):
     ]
 
     curpage = 0
+    kd = "python"
 
     def parse(self, response):
-        kd = "python"
         myurl = "http://www.lagou.com/jobs/positionAjax.json?px=new?kd={}"
-        yield scrapy.FormRequest(myurl.format(kd.encode('utf-8')), callback=self.parse_json_link, meta={'kd': kd},
-                                 dont_filter=True)
+        yield scrapy.FormRequest(myurl.format(self.kd.encode('utf-8')), callback=self.parse_json_link,dont_filter=True)
 
     def parse_json_link(self,response):
-        url = response.url
-        kd = response.meta['kd']
         jdict = json.loads(response.body_as_unicode())
         jcontent = jdict["content"]
         jposresult = jcontent["positionResult"]
@@ -35,28 +32,24 @@ class LagoupositonSpider(scrapy.Spider):
         totalPageCount = jposresult['totalCount'] / 15 + 1
 
         for page in range((int(totalPageCount))):
-            yield scrapy.Request("{}&pn={}".format(response.url, page + 1), callback=self.parse_id, meta={'kd': kd,'jresult':jresult},
+            yield scrapy.Request("{}&pn={}".format(response.url, page + 1), callback=self.parse_id, meta={'jresult':jresult},
                                  dont_filter=True)
 
-    def parse_id(self,response):
-        kd = response.meta['kd']
+    def parse_id(self, response):
+        detail_url = "http://www.lagou.com/jobs/{}.html"
         jresult = response.meta['jresult']
-        detail_url = "http://www.lagou.com/jobs/"
-
-        for each in jresult:
-            positionId = each['positionId']
-            positionUrl = detail_url + str(positionId) + '.html'
-            print positionUrl
-            yield scrapy.Request(positionUrl, callback=self.parse_detail, meta={'kd': kd},dont_filter=True)
+        for id in jresult:
+            yield scrapy.Request(detail_url.format(id['positionId']), callback=self.parse_detail,
+                                 dont_filter=True)
 
     # 根据每个职位对应的链接，返回相应的职位信息
     def parse_detail(self, response):
-        print "********"
+        print response.url
         item = PositiondetailsItem()
         sel = Selector(response)
 
         try:
-            item["kd"] = response.meta['kd']
+            item["kd"] = self.kd
             item["positionName"] = self.get_text(sel, '//*[@id="job_detail"]/dt/h1/@title')
             item["companyName"] = sel.xpath('//*[@id="container"]/div[2]/dl/dt/a/div/h2/text()').extract()[0].strip()
             item["city"] = sel.xpath('//*[@id="job_detail"]/dd[1]/p[1]/span[2]/text()').extract()[0]
