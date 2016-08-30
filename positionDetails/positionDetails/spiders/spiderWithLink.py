@@ -1,6 +1,6 @@
 #coding:utf-8
 '''
-根据每个职位对应的链接爬取对应的信息
+根据每个职位对应的链接爬取对应的信息(只能爬取一页信息)
 '''
 import scrapy,json,re,os
 from scrapy import Selector
@@ -39,13 +39,13 @@ class LagoupositonSpider(scrapy.Spider):
         self.totalPageCount = jposresult['totalCount'] / 15 + 1
 
         for each in jresult:
+            print "*****************************"
+            print positionLink.format(each['positionId'])
             yield scrapy.Request(positionLink.format(each['positionId']), callback=self.parse_detail, meta={'kd': kd},
                                  dont_filter=True)
 
     # 根据每个职位对应的链接，返回相应的职位信息
     def parse_detail(self, response):
-        print "***************"
-        print response.url
         item = PositiondetailsItem()
         sel = Selector(response)
 

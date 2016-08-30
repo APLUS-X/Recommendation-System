@@ -1,35 +1,27 @@
 #coding:utf-8
 '''
-根据每个职位对应的链接爬取对应的信息
+根据每个职位对应的链接爬取对应的信息，包括所有职位的职位描述
 '''
 import scrapy,json,re,os
 from scrapy import Selector
 from positionDetails.items import PositiondetailsItem
 from bs4 import BeautifulSoup
 
-
 basedir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 class LagoupositonSpider(scrapy.Spider):
-    name = "lagou4"
+    name = "lagouInfo"
     allowed_domains = ["*.lagou.com"]
     start_urls = [
         "http://www.lagou.com/"
     ]
 
-    curpage = 0
-
-    myurl = "http://www.lagou.com/jobs/positionAjax.json?px=new"
-
-    # 爬取Python
-    kd = 'python'
-
-    def start_requests(self):
-        return [scrapy.http.FormRequest(self.myurl,formdata={'kd':self.kd},callback=self.parse)]
-
     def parse(self, response):
+        print response.url
+        yield scrapy.Request("http://www.lagou.com/jobs/positionAjax.json?kd=python",callback=self.parse_json_link,meta={'kd':"python",'dont_redirect': True,"handle_httpstatus_list": [302]},dont_filter=True)
 
-        url = response.url
+    def parse_json_link(self,response):
+        kd = 'python'
         jdict = json.loads(response.body_as_unicode())
         jcontent = jdict["content"]
         jposresult = jcontent["positionResult"]
@@ -37,30 +29,25 @@ class LagoupositonSpider(scrapy.Spider):
         totalPageCount = jposresult['totalCount'] / 15 + 1
 
         for page in range((int(totalPageCount))):
-            yield scrapy.Request("{}&pn={}".format(response.url, page + 1), callback=self.parse_detail, meta={'kd': self.kd,'jresult':jresult},
+            yield scrapy.Request("{}&pn={}".format(response.url, page + 1), callback=self.parse_id, meta={'kd': kd,'jresult':jresult},
                                  dont_filter=True)
 
-    def parse_id(self,response):
+    def parse_id(self, response):
+        print "***************"
+        print response.url
         kd = response.meta['kd']
         jresult = response.meta['jresult']
-        detail_url = "http://www.lagou.com/jobs/"
+        detail_url = "http://www.lagou.com/jobs/{}.html"
 
-        yield scrapy.Request(detail_url, callback=self.parse_detail, meta={'kd': kd}, dont_filter=True)
+        for each in jresult:
+            # print "**********************"
+            # print detail_url.format(each['positionId'])
+            yield scrapy.Request(detail_url.format(each['positionId']), callback=self.parse_Info, meta={'kd': kd},
+                                 dont_filter=True)
 
-    # def parse_id(self,response):
-    #     kd = response.meta['kd']
-    #     jresult = response.meta['jresult']
-    #     detail_url = "http://www.lagou.com/jobs/"
-    #
-    #     for each in jresult:
-    #         positionId = each['positionId']
-    #         positionUrl = detail_url + str(positionId) + '.html'
-    #         print positionUrl
-    #         yield scrapy.Request(positionUrl, callback=self.parse_detail, meta={'kd': kd},dont_filter=True)
-
-    # 根据每个职位对应的链接，返回相应的职位信息
-    def parse_detail(self, response):
-        print "********"
+    def parse_Info(self, response):
+        print "***************"
+        print response.url
         item = PositiondetailsItem()
         sel = Selector(response)
 
@@ -88,5 +75,4 @@ class LagoupositonSpider(scrapy.Spider):
         text = BeautifulSoup(xpath_text).get_text()
         text = re.sub(r'\n|\r|\t|&nbsp|\xa0|\\xa0|\u3000|\\u3000|\\u0020|\u0020|\\|"\"|\"', '', text)
         return text
-
 

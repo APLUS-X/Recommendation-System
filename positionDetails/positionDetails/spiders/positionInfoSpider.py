@@ -1,4 +1,8 @@
 #coding:utf-8
+
+'''
+爬取职位信息，不包括职位的描述详情
+'''
 import scrapy,json,re,os
 from scrapy import Selector
 from positionDetails.items import PositiondetailsItem
